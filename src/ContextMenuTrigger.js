@@ -29,31 +29,22 @@ export default class ContextMenuTrigger extends Component {
     };
 
     touchHandled = false;
+    touchstartTimeoutId = null;
+
+    abortTimer = () => {
+        clearTimeout(this.touchstartTimeoutId);
+        this.touchstartTimeoutId = null;
+    }
 
     handleMouseDown = (event) => {
-        if (this.props.holdToDisplay >= 0 && event.button === 0) {
-            event.persist();
-            event.stopPropagation();
-
-            this.mouseDownTimeoutId = setTimeout(
-                () => this.handleContextClick(event),
-                this.props.holdToDisplay
-            );
-        }
         callIfExists(this.props.attributes.onMouseDown, event);
     }
 
     handleMouseUp = (event) => {
-        if (event.button === 0) {
-            clearTimeout(this.mouseDownTimeoutId);
-        }
         callIfExists(this.props.attributes.onMouseUp, event);
     }
 
     handleMouseOut = (event) => {
-        if (event.button === 0) {
-            clearTimeout(this.mouseDownTimeoutId);
-        }
         callIfExists(this.props.attributes.onMouseOut, event);
     }
 
@@ -75,11 +66,26 @@ export default class ContextMenuTrigger extends Component {
         callIfExists(this.props.attributes.onTouchStart, event);
     }
 
-    handleTouchEnd = (event) => {
+    handleTouchMove = () => {
         if (this.touchHandled) {
-            event.preventDefault();
+            hideMenu();
+        } else {
+            this.abortTimer();
         }
-        clearTimeout(this.touchstartTimeoutId);
+    }
+
+    handleTouchCancel = () => {
+        if (this.touchHandled) {
+            hideMenu();
+        } else {
+            this.abortTimer();
+        }
+    }
+
+    handleTouchEnd = (event) => {
+        if (!this.touchHandled) {
+            this.abortTimer();
+        }
         callIfExists(this.props.attributes.onTouchEnd, event);
     }
 
@@ -129,6 +135,8 @@ export default class ContextMenuTrigger extends Component {
             onMouseDown: this.handleMouseDown,
             onMouseUp: this.handleMouseUp,
             onTouchStart: this.handleTouchstart,
+            onTouchMove: this.handleTouchMove,
+            onTouchCancel: this.handleTouchCancel,
             onTouchEnd: this.handleTouchEnd,
             onMouseOut: this.handleMouseOut,
             ref: this.elemRef
