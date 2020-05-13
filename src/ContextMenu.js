@@ -34,7 +34,7 @@ export default class ContextMenu extends AbstractMenu {
         onHide() { return null; },
         onMouseLeave() { return null; },
         onShow() { return null; },
-        preventHideOnContextMenu: false,
+        preventHideOnContextMenu: true, // important for Chrome on Android
         preventHideOnResize: false,
         preventHideOnScroll: false,
         style: {}
@@ -74,14 +74,8 @@ export default class ContextMenu extends AbstractMenu {
                     if (!this.menu) return;
                     this.menu.style.top = `${top}px`;
                     this.menu.style.left = `${left}px`;
-                    this.menu.style.opacity = 1;
-                    this.menu.style.pointerEvents = 'auto';
                 });
             });
-        } else {
-            if (!this.menu) return;
-            this.menu.style.opacity = 0;
-            this.menu.style.pointerEvents = 'none';
         }
     }
 
@@ -233,7 +227,7 @@ export default class ContextMenu extends AbstractMenu {
         const inlineStyle = assign(
             {},
             style,
-            { position: 'fixed', opacity: 0, pointerEvents: 'none' }
+            { position: 'fixed', opacity: isVisible ? 1 : 0, pointerEvents: isVisible ? 'auto' : 'none' }
         );
         const menuClassnames = cx(cssClasses.menu, className, {
             [cssClasses.menuVisible]: isVisible

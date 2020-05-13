@@ -82,7 +82,7 @@ export default class MenuItem extends Component {
                 aria-orientation={divider ? 'horizontal' : null}
                 ref={(ref) => { this.ref = ref; }}
                 onMouseMove={this.props.onMouseMove} onMouseLeave={this.props.onMouseLeave}
-                onTouchEnd={this.handleClick} onClick={this.handleClick}>
+                onClick={this.handleClick}>
                 {divider ? null : children}
             </div>
         );

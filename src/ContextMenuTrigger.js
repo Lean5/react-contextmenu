@@ -28,7 +28,7 @@ export default class ContextMenuTrigger extends Component {
         attributes: {},
         collect() { return null; },
         disable: false,
-        holdToDisplay: 1000,
+        holdToDisplay: 1000, // cannot be much shorter, otherwise native drag & drop for iPad breaks
         renderTag: 'div',
         posX: 0,
         posY: 0,
@@ -41,6 +41,7 @@ export default class ContextMenuTrigger extends Component {
     }
 
     touchHandled = false;
+    touchstartPosition = null;
     touchstartTimeoutId = null;
 
     abortTimer = () => {
@@ -57,6 +58,7 @@ export default class ContextMenuTrigger extends Component {
             event.persist();
             event.stopPropagation();
 
+            this.touchstartPosition = [event.touches[0].clientX, event.touches[0].clientY];
             this.touchstartTimeoutId = setTimeout(
                 () => {
                     this.handleContextClick(event);
@@ -70,10 +72,19 @@ export default class ContextMenuTrigger extends Component {
     }
 
     handleTouchMove = (event) => {
-        if (this.touchHandled) {
-            hideMenu();
-        } else {
-            this.abortTimer();
+        let isRealMove = true;
+        // ignore tiny moves (unstable finger)
+        if (this.touchstartPosition && event.touches.length > 0) {
+            const deltaX = Math.abs(event.touches[0].clientX - this.touchstartPosition[0]);
+            const deltaY = Math.abs(event.touches[0].clientY - this.touchstartPosition[1]);
+            isRealMove = Math.max(deltaX, deltaY) > 16;
+        }
+        if (isRealMove) {
+            if (this.touchHandled) {
+                hideMenu();
+            } else {
+                this.abortTimer();
+            }
         }
         callIfExists(this.props.attributes.onTouchMove, event);
     }
@@ -101,6 +112,20 @@ export default class ContextMenuTrigger extends Component {
         callIfExists(this.props.attributes.onContextMenu, event);
     }
 
+    handleMouseDown = (event) => {
+        // prevent mousedown and click events right after touchend if the menu has been shown
+        if (this.touchHandled) {
+            event.preventDefault();
+            event.stopPropagation();
+            // The following is absolutely necessary in order not to trigger the global document.click
+            // event handler in ContextMenu, which would hide the menu (click outside menu).
+            event.nativeEvent.stopImmediatePropagation();
+            return;
+        }
+
+        callIfExists(this.props.attributes.onMouseDown, event);
+    }
+
     handleMouseClick = (event) => {
         if (event.button === this.props.mouseButton) {
             this.handleContextClick(event);
@@ -115,8 +140,8 @@ export default class ContextMenuTrigger extends Component {
         event.preventDefault();
         event.stopPropagation();
 
-        let x = event.clientX || (event.touches && event.touches[0].pageX);
-        let y = event.clientY || (event.touches && event.touches[0].pageY);
+        let x = event.clientX || (event.touches && event.touches[0].clientX);
+        let y = event.clientY || (event.touches && event.touches[0].clientY);
 
         if (this.props.posX) {
             x -= this.props.posX;
@@ -159,10 +184,12 @@ export default class ContextMenuTrigger extends Component {
         const newAttrs = assign({}, attributes, {
             className: cx(cssClasses.menuWrapper, attributes.className),
             onContextMenu: this.handleContextMenu,
+            onMouseDown: this.handleMouseDown,
             onClick: this.handleMouseClick,
             onTouchStart: this.handleTouchstart,
             onTouchMove: this.handleTouchMove,
-            onTouchCancel: this.handleTouchCancel,
+            // ignore touchcancel for Chrome on Android with native drag & drop (seemingly triggered when the drag operation is started)
+            //onTouchCancel: this.handleTouchCancel,
             onTouchEnd: this.handleTouchEnd,
             ref: this.elemRef
         });
