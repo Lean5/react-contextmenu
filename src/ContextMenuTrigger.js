@@ -130,6 +130,7 @@ export default class ContextMenuTrigger extends Component {
         let data = callIfExists(this.props.collect, this.props);
         let showMenuConfig = {
             position: { x, y },
+            fromTouch: !!event.touches,
             target: this.elem,
             id: this.props.id
         };

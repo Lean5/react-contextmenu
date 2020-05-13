@@ -46,6 +46,7 @@ export default class ContextMenu extends AbstractMenu {
         this.state = assign({}, this.state, {
             x: 0,
             y: 0,
+            fromTouch: false,
             isVisible: false
         });
     }
@@ -63,11 +64,11 @@ export default class ContextMenu extends AbstractMenu {
             const wrapper = window.requestAnimationFrame || setTimeout;
 
             wrapper(() => {
-                const { x, y } = this.state;
+                const { x, y, fromTouch } = this.state;
 
                 const { top, left } = this.props.rtl
                     ? this.getRTLMenuPosition(x, y)
-                    : this.getMenuPosition(x, y);
+                    : this.getMenuPosition(x, y, fromTouch);
 
                 wrapper(() => {
                     if (!this.menu) return;
@@ -113,9 +114,9 @@ export default class ContextMenu extends AbstractMenu {
     handleShow = (e) => {
         if (e.detail.id !== this.props.id || this.state.isVisible) return;
 
-        const { x, y } = e.detail.position;
+        const { position: { x, y }, fromTouch } = e.detail;
 
-        this.setState({ isVisible: true, x, y });
+        this.setState({ isVisible: true, x, y, fromTouch });
         this.registerHandlers();
         callIfExists(this.props.onShow, e);
     }
@@ -158,9 +159,10 @@ export default class ContextMenu extends AbstractMenu {
         }
     }
 
-    getMenuPosition = (x = 0, y = 0) => {
+    getMenuPosition = (x = 0, y = 0, fromTouch = false) => {
+        const touchDistance = fromTouch ? 16 : 0;
         let menuStyles = {
-            top: y,
+            top: y + touchDistance,
             left: x
         };
 
@@ -169,8 +171,8 @@ export default class ContextMenu extends AbstractMenu {
         const { innerWidth, innerHeight } = window;
         const rect = this.menu.getBoundingClientRect();
 
-        if (y + rect.height > innerHeight) {
-            menuStyles.top -= rect.height;
+        if (menuStyles.top + rect.height > innerHeight) {
+            menuStyles.top -= rect.height + 2 * touchDistance;
         }
 
         if (x + rect.width > innerWidth) {
